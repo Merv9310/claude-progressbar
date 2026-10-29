@@ -1,0 +1,11 @@
+{
+  "name": "fortschritt",
+  "version": "0.2.0",
+  "description": "Leiste über der Eingabe: Fortschritt der Aufgabenliste, aktive Agents und klein an der Seite die Reset-Zeiten von 5-Stunden-Fenster und Woche.",
+  "types": "./types/index.d.ts",
+  "author": {
+    "name": "Merv9310"
+  },
+  "license": "MIT",
+  "repository": "https://github.com/Merv9310/claude-progressbar"
+}

@@ -1,0 +1,11 @@
+{
+  "name": "wochen-nutzung",
+  "version": "0.2.0",
+  "description": "Balken über der Eingabe: Sitzung und Woche in %, die Woche aufgeteilt in lokal und Web; dazu ein Label in der Fußzeile, Details über /nutzung.",
+  "types": "./types/index.d.ts",
+  "author": {
+    "name": "Merv9310"
+  },
+  "license": "MIT",
+  "repository": "https://github.com/Merv9310/claude-progressbar"
+}

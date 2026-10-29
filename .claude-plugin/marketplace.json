@@ -1,0 +1,19 @@
+{
+  "name": "claude-progressbar",
+  "owner": {
+    "name": "Merv9310"
+  },
+  "metadata": {
+    "description": "Leisten über der Eingabe von Claude Code: Fortschritt, Agents und Nutzung als Balken."
+  },
+  "plugins": [
+    {
+      "name": "fortschritt",
+      "source": "./plugins/fortschritt"
+    },
+    {
+      "name": "wochen-nutzung",
+      "source": "./plugins/wochen-nutzung"
+    }
+  ]
+}
