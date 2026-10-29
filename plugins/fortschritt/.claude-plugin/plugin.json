@@ -1,7 +1,7 @@
 {
   "name": "fortschritt",
-  "version": "0.3.0",
-  "description": "Feste Leiste über der Eingabe, auch ohne Aufgabenliste: Fortschritt der Aufgabenliste, aktive Agents und klein an der Seite die Reset-Zeiten von 5-Stunden-Fenster und Woche.",
+  "version": "0.4.0",
+  "description": "Feste Leiste über der Eingabe, auch ohne Aufgabenliste: Fortschritt der Aufgabenliste, aktive Agents und klein an der Seite, wie viel vom Wochenkontingent lokal und im Web verbraucht wurde (Werte aus dem Mod wochen-nutzung).",
   "types": "./types/index.d.ts",
   "author": {
     "name": "Merv9310"

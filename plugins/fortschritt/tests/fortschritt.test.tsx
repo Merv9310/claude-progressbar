@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'claude-code/testing'
-import type { RenderElement, SessionMeasureInput } from 'claude-code'
+import type { RenderElement } from 'claude-code'
 
 import { applyPlan, doneOf, finishPlan, titleOf } from '../hooks/plan'
-import { resetLines, rowSvg } from '../hooks/register'
+import { rowSvg, splitLines } from '../hooks/register'
 
 const items = [
   { content: 'Dateien lesen', status: 'completed' },
@@ -39,39 +39,28 @@ describe('plan', () => {
   })
 })
 
-test('the drawing holds title, count, agents and reset times', () => {
+test('the drawing holds title, count, agents and the local / web split', () => {
   const svg = rowSvg(
-    { title: 'Mod schreiben', done: 1, total: 3, isFinished: false, running: 2, resets: ['5h-Reset 15:40', 'Woche-Reset Sa., 03:00'] },
+    { title: 'Mod schreiben', done: 1, total: 3, isFinished: false, running: 2, split: ['Lokal 5%', 'Web 2,3%'] },
     800,
   )
   expect(svg.includes('Mod schreiben')).toBe(true)
   expect(svg.includes('1/3')).toBe(true)
   expect(svg.includes('2 Agents')).toBe(true)
-  expect(svg.includes('5h-Reset 15:40')).toBe(true)
-  expect(svg.includes('übrig')).toBe(false)
+  expect(svg.includes('Lokal 5%')).toBe(true)
+  expect(svg.includes('Web 2,3%')).toBe(true)
+  expect(svg.includes('Reset')).toBe(false)
 })
 
-test('reset lines appear only for windows that report a reset', () => {
-  expect(resetLines(null)).toEqual([])
-  expect(resetLines({ week: '2026-11-01T02:00:00.000Z' }).length).toBe(1)
-  expect(resetLines({ week: '2026-11-01T02:00:00.000Z' })[0]?.startsWith('Woche-Reset ')).toBe(true)
+test('the split lines appear only once wochen-nutzung has a split', () => {
+  expect(splitLines(null)).toEqual([])
+  expect(splitLines({ local: 12.4, other: 2.25 })).toEqual(['Lokal 12%', 'Web 2,3%'])
 })
-
-const figures: SessionMeasureInput = {
-  context: { tokens: 74_000, window: 200_000, percent: 37 },
-  rateLimits: [
-    { kind: 'five_hour', percentUsed: 38, resetsAt: '2026-10-29T14:40:00.000Z' },
-    { kind: 'seven_day', percentUsed: 19, resetsAt: '2026-11-01T02:00:00.000Z' },
-  ],
-  cost: { usd: 0 },
-  changed: ['rateLimits'],
-}
 
 test('the band appears with a task list and hides on ✕', async ($, on) => {
   const band = { hasSurvey: false, isWorking: true, maxRows: 10, bodyColumns: 120 } as never
   // Stellvertreter für die Engine.
   on('tool.call', () => ({ result: 'ok' }))
-  on('session.measure', ($, e) => ({ changed: e.changed }))
   on('ui.render', { component: 'AbovePrompt' }, ($, e) => {
     const { Box } = $.ui.resolve(e)
     return h(Box, {}) as RenderElement
@@ -89,13 +78,13 @@ test('the band appears with a task list and hides on ✕', async ($, on) => {
     await empty.unmount()
   }
 
-  await $.session.measure(figures)
   await $.tool.call({ tool: 'mcp__ccd_turn__update_plan', items } as never)
 
   const ui = await $.ui.mount({ plugin: 'fortschritt', surface: 'terminal', component: 'AbovePrompt', props: band })
   expect(await ui.find({ type: 'Text', text: 'Mod schreiben' })).toBeDefined()
   expect(await ui.find({ type: 'Text', text: '1/3' })).toBeDefined()
-  expect(await ui.find({ type: 'Text', text: /^5h-Reset .+ · Woche-Reset / })).toBeDefined()
+  // Ohne den Mod „wochen-nutzung“ gibt es keine Aufteilung: die Stelle bleibt leer.
+  expect(await ui.find({ type: 'Text', text: /Lokal/ })).toBeUndefined()
   await ui.unmount()
 
   const desk = await $.ui.mount({ plugin: 'fortschritt', surface: 'desktop', component: 'AbovePrompt', props: band })

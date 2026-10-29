@@ -37,6 +37,26 @@ function when(iso?: string) {
   }
 }
 
+/** „Reset 15:40“ */
+function resetClock(iso?: string) {
+  if (!iso) return ''
+  try {
+    return `Reset ${new Date(iso).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}`
+  } catch {
+    return `Reset ${iso.slice(11, 16)}`
+  }
+}
+
+/** „Reset Sa., 03:00“ */
+function resetWeekday(iso?: string) {
+  if (!iso) return ''
+  try {
+    return `Reset ${new Date(iso).toLocaleString('de-DE', { weekday: 'short', hour: '2-digit', minute: '2-digit' })}`
+  } catch {
+    return `Reset ${iso.slice(0, 16).replace('T', ' ')}`
+  }
+}
+
 /** Amber from 75 %, red from 90 %. */
 const levelColor = (p: number) => (p >= 90 ? 'error' : p >= 75 ? 'warning' : undefined)
 
@@ -45,25 +65,27 @@ type BandPart = { key: string; text: string; color?: 'error' | 'warning'; name: 
 /** The band's parts, left to right: the session (5-hour) window, then the week. */
 function bandParts(s: Snapshot) {
   const parts: BandPart[] = []
-  // Die Reset-Zeiten zeigt die Fortschritts-Leiste (Mod „fortschritt“) unten rechts.
+  // Jede Grenze mit ihrer Reset-Zeit; die Aufteilung lokal / Web zeigt die
+  // Fortschritts-Leiste (Mod „fortschritt“) rechts außen.
   if (s.fiveHour) {
+    const reset = resetClock(s.fiveHour.resetsAt)
     parts.push({
       key: 'session',
-      text: `Sitzung ${pct(s.fiveHour.pct)}`,
+      text: `Sitzung ${pct(s.fiveHour.pct)}${reset ? ` · ${reset}` : ''}`,
       color: levelColor(s.fiveHour.pct),
       name: 'Sitzung',
-      detail: '',
+      detail: reset,
       pct: s.fiveHour.pct,
     })
   }
   if (s.week) {
-    const split = s.ledger ? `lokal ${pct(s.ledger.local)} · Web ${pct(s.ledger.other)}` : ''
+    const reset = resetWeekday(s.week.resetsAt)
     parts.push({
       key: 'week',
-      text: `Woche ${pct(s.week.pct)}${split ? ` (${split})` : ''}`,
+      text: `Woche ${pct(s.week.pct)}${reset ? ` · ${reset}` : ''}`,
       color: levelColor(s.week.pct),
       name: 'Woche',
-      detail: split,
+      detail: reset,
       pct: s.week.pct,
     })
   }
@@ -112,7 +134,7 @@ function limitSvg(p: BandPart, x: number, y: number, w: number, detailX: number)
   const pctW = textWidth(percent, 12.5)
   const detail = fitText(p.detail, 11.5, Math.max(0, w - detailX - pctW - 24))
   const barW = Math.round((w * Math.min(100, Math.max(0, p.pct))) / 100)
-  // white-space:pre hält die breiten Abstände zwischen lokal, Web und Reset.
+  // white-space:pre hält breite Abstände in den Details.
   return `<g transform="translate(${x},${y})">
 <text class="t" x="0" y="12" font-family="${FONT}" font-size="12.5" font-weight="600">${xml(p.name)}</text>
 <text class="m" x="${detailX}" y="12" font-family="${FONT}" font-size="11.5" style="white-space:pre">${xml(detail)}</text>

@@ -4,12 +4,12 @@ Zwei Mods für [Claude Code](https://claude.com/claude-code), die über der Eing
 
 | Mod | Was er zeigt |
 | --- | --- |
-| `wochen-nutzung` | Sitzung (5-Stunden-Fenster) und Woche als dünne Balken mit Prozent, bei der Woche zusätzlich, wie viel davon lokal in Claude Code und wie viel woanders (Web, Handy) verbraucht wurde. Blau, ab 75 % orange, ab 90 % rot. Details über `/nutzung`. |
-| `fortschritt` | Den aktuellen Schritt der Aufgabenliste, einen gepunkteten Fortschrittsbalken („2/5“, Prozent), die Zahl der laufenden Agents und klein rechts die Reset-Zeiten von 5-Stunden-Fenster und Woche. |
+| `wochen-nutzung` | Sitzung (5-Stunden-Fenster) und Woche als dünne Balken mit Prozent und ihrer Reset-Zeit. Blau, ab 75 % orange, ab 90 % rot. Er misst außerdem, wie viel von der Woche lokal in Claude Code und wie viel woanders (Web, Handy) verbraucht wurde. Details über `/nutzung`. |
+| `fortschritt` | Den aktuellen Schritt der Aufgabenliste, einen gepunkteten Fortschrittsbalken („2/5“, Prozent), die Zahl der laufenden Agents und klein rechts, wie viel von der Woche lokal und im Web verbraucht wurde. |
 
 Beide laufen einzeln, zusammen ergeben sie die komplette Leiste: oben die Nutzung, darunter der Fortschritt. Jede Leiste lässt sich mit ✕ ausblenden.
 
-**Hinweis:** `fortschritt` liest die Aufgabenliste, die Claude im Code-Tab der Claude-Desktop-App führt. Die Leiste steht immer da, auch ohne Aufgabenliste: dann mit leerem Balken, den laufenden Agents und den Reset-Zeiten. Die Texte sind auf Deutsch.
+**Hinweis:** `fortschritt` liest die Aufgabenliste, die Claude im Code-Tab der Claude-Desktop-App führt. Die Leiste steht immer da, auch ohne Aufgabenliste: dann mit leerem Balken und den laufenden Agents. Die Aufteilung lokal / Web kommt aus `wochen-nutzung`; ohne diesen Mod bleibt die Stelle leer. Die Texte sind auf Deutsch.
 
 ## Installieren
 

@@ -1,60 +1,43 @@
 import { atom, read, update } from 'claude-code'
-import type { EngineInterface, Register, SessionRateLimit } from 'claude-code'
+import type { EngineInterface, Register } from 'claude-code'
 
-import type { Plan, Resets } from '../types'
+import type { Plan } from '../types'
 import { applyPlan, doneOf, finishPlan, titleOf } from './plan'
 import type { PlanInput } from './plan'
 
 const plan = atom({ plugin: 'fortschritt', key: 'plan' } as const, null)
 const agents = atom({ plugin: 'fortschritt', key: 'agents' } as const, [])
-const resets = atom({ plugin: 'fortschritt', key: 'resets' } as const, null)
 const isHidden = atom({ plugin: 'fortschritt', key: 'isHidden' } as const, false)
 
 const PLAN_TOOL = 'mcp__ccd_turn__update_plan'
 const WRAP_TOOL = 'mcp__ccd_turn__wrap_up'
 
 // ---------------------------------------------------------------------------
-// Reset-Zeiten des 5-Stunden-Fensters und der Woche. Wie viel verbraucht ist,
-// zeigen die Balken des Mods „wochen-nutzung“ darüber.
+// Wie viel vom Wochenkontingent lokal und wie viel im Web verbraucht wurde.
+// Gemessen und geführt vom Mod „wochen-nutzung“, dessen Balken mit den
+// Reset-Zeiten darüber stehen; jeder Mod darf die Werte eines anderen lesen.
+// Ohne ihn bleibt die Stelle leer.
 
-const resetsOf = (limits: SessionRateLimit[]): Resets => ({
-  fiveHour: limits.find(l => l.kind === 'five_hour')?.resetsAt,
-  week: limits.find(l => l.kind === 'seven_day')?.resetsAt,
-})
+export type Split = { local: number; other: number }
 
-async function setResets($: EngineInterface, r: Resets) {
-  const prev = await read($, resets)
-  if (prev?.fiveHour === r.fiveHour && prev?.week === r.week) return
-  await update($, resets, () => r)
-}
+type UsageSnapshot = { week?: unknown; ledger?: { local?: unknown; other?: unknown } } | null
 
-async function refreshResets($: EngineInterface) {
-  await setResets($, resetsOf((await $.session.usage()).rateLimits))
-}
-
-/** „15:40“ */
-function clockTime(iso: string) {
+async function splitOf($: EngineInterface): Promise<Split | null> {
   try {
-    return new Date(iso).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
+    const read = (await $.state.get({ plugin: 'wochen-nutzung', key: 'snapshot' } as never)) as unknown as {
+      value?: UsageSnapshot
+    }
+    const l = read.value?.week ? read.value.ledger : undefined
+    return typeof l?.local === 'number' && typeof l.other === 'number' ? { local: l.local, other: l.other } : null
   } catch {
-    return iso.slice(11, 16)
+    return null
   }
 }
 
-/** „Sa., 03:00“ */
-function weekTime(iso: string) {
-  try {
-    return new Date(iso).toLocaleString('de-DE', { weekday: 'short', hour: '2-digit', minute: '2-digit' })
-  } catch {
-    return iso.slice(0, 16).replace('T', ' ')
-  }
-}
+const pct = (n: number) => (n >= 10 || Number.isInteger(n) ? `${Math.round(n)}%` : `${n.toFixed(1).replace('.', ',')}%`)
 
-/** Die beiden Zeilen unten rechts; leer, solange keine Messung da ist. */
-export const resetLines = (r: Resets | null): string[] =>
-  [r?.fiveHour && `5h-Reset ${clockTime(r.fiveHour)}`, r?.week && `Woche-Reset ${weekTime(r.week)}`].filter(
-    (s): s is string => Boolean(s),
-  )
+/** Die beiden Zeilen rechts außen; leer, solange keine Aufteilung da ist. */
+export const splitLines = (s: Split | null): string[] => (s ? [`Lokal ${pct(s.local)}`, `Web ${pct(s.other)}`] : [])
 
 // ---------------------------------------------------------------------------
 // Die Zeile als ein SVG: Titel, gepunkteter Balken, Prozent, Agents, Kontingent.
@@ -97,10 +80,11 @@ export type View = {
   total: number
   isFinished: boolean
   running: number
-  resets: string[]
+  /** Lokal und Web, zweizeilig rechts außen. */
+  split: string[]
 }
 
-const RESET_W = 118
+const SPLIT_W = 80
 const AGENT_W = 84
 const PCT_W = 38
 
@@ -109,7 +93,7 @@ export function rowSvg(v: View, W: number): string {
   const ratio = v.total ? v.done / v.total : 0
   const title = fitText(v.title, 13, Math.max(60, W * 0.32))
   const BAR_X = Math.round(16 + textWidth(title, 13) + 12)
-  const BAR_W = Math.max(60, W - BAR_X - PCT_W - AGENT_W - RESET_W - 16)
+  const BAR_W = Math.max(60, W - BAR_X - PCT_W - AGENT_W - SPLIT_W - 16)
   const y0 = (H - BAR_H) / 2
   const fillW = Math.round(BAR_W * ratio)
 
@@ -150,9 +134,9 @@ ${isBusy ? '<rect x="2.5" y="5.5" width="2" height="2" fill="#fff"/><rect x="6.5
 </g>`
   const agentText = isBusy ? `${v.running} ${v.running === 1 ? 'Agent' : 'Agents'}` : 'keine Agents'
 
-  // Reset-Zeiten: klein, zweizeilig, rechts außen; eine einzelne mittig.
-  const ys = v.resets.length === 1 ? [H / 2 + 3.5] : [10, 21]
-  const resetSvg = v.resets
+  // Lokal und Web: klein, zweizeilig, rechts außen.
+  const ys = v.split.length === 1 ? [H / 2 + 3.5] : [10, 21]
+  const splitSvg = v.split
     .map(
       (line, i) =>
         `<text class="m" x="${W - 2}" y="${ys[i]}" text-anchor="end" font-family="${FONT}" font-size="9.5" font-variant-numeric="tabular-nums">${xml(line)}</text>`,
@@ -182,7 +166,7 @@ ${pillSvg}
 <text class="m" x="${BAR_X + BAR_W + PCT_W - 4}" y="${H / 2 + 4.5}" text-anchor="end" font-family="${FONT}" font-size="12.5" font-variant-numeric="tabular-nums">${percent}</text>
 ${bot}
 <text class="${isBusy ? 't' : 'm'}" x="${AX + 16}" y="${H / 2 + 4}" font-family="${FONT}" font-size="11.5">${agentText}</text>
-${resetSvg}
+${splitSvg}
 </svg>`
 }
 
@@ -191,23 +175,17 @@ const barText = (v: View, width: number): string => {
   return '█'.repeat(filled) + '░'.repeat(Math.max(0, width - filled))
 }
 
-// Ohne Aufgabenliste steht die Leiste trotzdem da: leerer Balken, Agents, Reset-Zeiten.
-const viewOf = (p: Plan | null, running: number, r: Resets | null): View => ({
+// Ohne Aufgabenliste steht die Leiste trotzdem da: leerer Balken, Agents, lokal / Web.
+const viewOf = (p: Plan | null, running: number, s: Split | null): View => ({
   title: p ? titleOf(p) : running > 0 ? 'Agents arbeiten' : 'Keine Aufgabenliste',
   done: p ? doneOf(p) : 0,
   total: p ? p.steps.length : 0,
   isFinished: p?.isFinished ?? false,
   running,
-  resets: resetLines(r),
+  split: splitLines(s),
 })
 
 export const register: Register = on => {
-  on('session.start', async ($, e, next) => {
-    const started = await next(e)
-    await refreshResets($).catch(() => {})
-    return started
-  })
-
   // Eine fertige Liste bleibt stehen, bis die nächste Nachricht kommt.
   // Ein Fehler der Leiste darf nie eine Nachricht, ein Tool oder einen Agent aufhalten:
   // die eigene Buchführung läuft darum immer mit .catch.
@@ -255,18 +233,6 @@ export const register: Register = on => {
     return next(e)
   })
 
-  // Nach jeder Modellantwort die Reset-Zeiten neu lesen.
-  on('turn.step', async function* ($, e, next) {
-    const result = yield* next(e)
-    void refreshResets($).catch(() => {})
-    return result
-  })
-
-  on('session.measure', async ($, e, next) => {
-    await setResets($, resetsOf(e.rateLimits)).catch(() => {})
-    return next(e)
-  })
-
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const p = await read($, plan)
     const list = await read($, agents)
@@ -277,7 +243,8 @@ export const register: Register = on => {
     const drawn = await Promise.resolve(next(e)).catch(() => null)
     const below = drawn && typeof drawn === 'object' && (drawn as { type?: string }).type !== 'engine' ? drawn : null
 
-    const v = viewOf(p, list.length, await read($, resets))
+    // Beim Zeichnen gelesen: ändert „wochen-nutzung“ die Aufteilung, zeichnet die Leiste neu.
+    const v = viewOf(p, list.length, await splitOf($))
     const ui = $.ui.resolve(e)
     const { Box, Text, Button } = ui
     const dismiss = <Button key="fortschritt-hide" label="✕" plain role="dismiss" onPress={() => update($, isHidden, () => true)} />
@@ -306,7 +273,7 @@ export const register: Register = on => {
           {v.total > 0 && <Text color={v.isFinished ? DONE : ACCENT}>{barText(v, 20)}</Text>}
           {v.total > 0 && <Text bold>{`${v.done}/${v.total}`}</Text>}
           <Text dimColor={v.running === 0}>{v.running > 0 ? `${v.running} Agents` : 'keine Agents'}</Text>
-          {v.resets.length > 0 && <Text dimColor>{v.resets.join(' · ')}</Text>}
+          {v.split.length > 0 && <Text dimColor>{v.split.join(' · ')}</Text>}
           {dismiss}
         </Box>
         {below}

@@ -9,15 +9,11 @@ export type Plan = { steps: Step[]; isFinished: boolean }
 /** Ein laufender Subagent. */
 export type Run = { id: string; label: string }
 
-/** Wann das 5-Stunden-Fenster und die Woche zurückgesetzt werden (ISO 8601). */
-export type Resets = { fiveHour?: string; week?: string }
-
 declare module 'claude-code' {
   interface PluginState {
     fortschritt: {
       plan: Plan | null
       agents: Run[]
-      resets: Resets | null
       /** Leiste mit ✕ ausgeblendet, bis eine neue Liste oder ein neuer Agent kommt. */
       isHidden: boolean
     }

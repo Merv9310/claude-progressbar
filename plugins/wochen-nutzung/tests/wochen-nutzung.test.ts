@@ -106,10 +106,10 @@ test('the band above the prompt shows session and week, and hides on ✕', async
   await $.session.measure(figures(34))
 
   const text = await $.ui.mount({ plugin: 'wochen-nutzung', surface: 'terminal', component: 'AbovePrompt', props: band })
-  // Die Reset-Zeiten stehen in der Fortschritts-Leiste, hier nicht noch einmal.
-  expect(await text.find({ type: 'Text', text: 'Sitzung 12%' })).toBeDefined()
-  expect(await text.find({ type: 'Text', text: 'Woche 34% (lokal 0% · Web 4%)' })).toBeDefined()
-  expect(await text.find({ type: 'Text', text: /Reset/ })).toBeUndefined()
+  // Jede Grenze mit ihrer Reset-Zeit; lokal / Web steht in der Fortschritts-Leiste.
+  expect(await text.find({ type: 'Text', text: /^Sitzung 12% · Reset \d\d:\d\d$/ })).toBeDefined()
+  expect(await text.find({ type: 'Text', text: /^Woche 34% · Reset / })).toBeDefined()
+  expect(await text.find({ type: 'Text', text: /lokal/ })).toBeUndefined()
   await text.unmount()
 
   // Auf dem Desktop eine Zeichnung mit Balken statt Text.
