@@ -77,9 +77,17 @@ test('the band appears with a task list and hides on ✕', async ($, on) => {
     return h(Box, {}) as RenderElement
   })
 
-  const empty = await $.ui.mount({ plugin: 'fortschritt', surface: 'terminal', component: 'AbovePrompt', props: band })
-  expect(await empty.find({ type: 'Text', text: /Agents/ })).toBeUndefined()
-  await empty.unmount()
+  // Ohne Aufgabenliste und ohne Agents bleibt die Leiste stehen.
+  for (const surface of ['terminal', 'desktop'] as const) {
+    const empty = await $.ui.mount({ plugin: 'fortschritt', surface, component: 'AbovePrompt', props: band })
+    if (surface === 'terminal') {
+      expect(await empty.find({ type: 'Text', text: 'Keine Aufgabenliste' })).toBeDefined()
+      expect(await empty.find({ type: 'Text', text: 'keine Agents' })).toBeDefined()
+    } else {
+      expect(await empty.find({ type: 'Svg' })).toBeDefined()
+    }
+    await empty.unmount()
+  }
 
   await $.session.measure(figures)
   await $.tool.call({ tool: 'mcp__ccd_turn__update_plan', items } as never)

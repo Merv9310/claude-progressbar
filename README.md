@@ -9,7 +9,7 @@ Zwei Mods für [Claude Code](https://claude.com/claude-code), die über der Eing
 
 Beide laufen einzeln, zusammen ergeben sie die komplette Leiste: oben die Nutzung, darunter der Fortschritt. Jede Leiste lässt sich mit ✕ ausblenden.
 
-**Hinweis:** `fortschritt` liest die Aufgabenliste, die Claude im Code-Tab der Claude-Desktop-App führt. In anderen Umgebungen zeigt er nur die laufenden Agents. Die Texte sind auf Deutsch.
+**Hinweis:** `fortschritt` liest die Aufgabenliste, die Claude im Code-Tab der Claude-Desktop-App führt. Die Leiste steht immer da, auch ohne Aufgabenliste: dann mit leerem Balken, den laufenden Agents und den Reset-Zeiten. Die Texte sind auf Deutsch.
 
 ## Installieren
 

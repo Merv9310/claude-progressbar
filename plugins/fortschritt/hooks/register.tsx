@@ -191,8 +191,9 @@ const barText = (v: View, width: number): string => {
   return '█'.repeat(filled) + '░'.repeat(Math.max(0, width - filled))
 }
 
+// Ohne Aufgabenliste steht die Leiste trotzdem da: leerer Balken, Agents, Reset-Zeiten.
 const viewOf = (p: Plan | null, running: number, r: Resets | null): View => ({
-  title: p ? titleOf(p) : 'Agents arbeiten',
+  title: p ? titleOf(p) : running > 0 ? 'Agents arbeiten' : 'Keine Aufgabenliste',
   done: p ? doneOf(p) : 0,
   total: p ? p.steps.length : 0,
   isFinished: p?.isFinished ?? false,
@@ -269,7 +270,7 @@ export const register: Register = on => {
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const p = await read($, plan)
     const list = await read($, agents)
-    if ((p === null && list.length === 0) || e.props.hasSurvey || (await read($, isHidden))) return next(e)
+    if (e.props.hasSurvey || (await read($, isHidden))) return next(e)
 
     // Die Bänder anderer Mods darunter; Claude Codes eigener Platzhalter ({ type: 'engine' })
     // wird nie verschachtelt: die Desktop-App verwirft ein Band, das ihn enthält.
