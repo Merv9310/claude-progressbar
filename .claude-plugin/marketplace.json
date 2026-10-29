@@ -4,7 +4,7 @@
     "name": "Merv9310"
   },
   "metadata": {
-    "description": "Leisten über der Eingabe von Claude Code: Fortschritt, Agents und Nutzung als Balken."
+    "description": "Bars above the Claude Code prompt: progress, agents and usage."
   },
   "plugins": [
     {

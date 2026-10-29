@@ -1,7 +1,7 @@
 {
   "name": "fortschritt",
   "version": "0.4.0",
-  "description": "Feste Leiste über der Eingabe, auch ohne Aufgabenliste: Fortschritt der Aufgabenliste, aktive Agents und klein an der Seite, wie viel vom Wochenkontingent lokal und im Web verbraucht wurde (Werte aus dem Mod wochen-nutzung).",
+  "description": "A fixed bar above the prompt, even without a task list: task-list progress, running agents and, small on the side, how much of the weekly limit was used locally and on the web (values from the wochen-nutzung mod).",
   "types": "./types/index.d.ts",
   "author": {
     "name": "Merv9310"

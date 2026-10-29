@@ -1,19 +1,19 @@
 # claude-progressbar
 
-Zwei Mods für [Claude Code](https://claude.com/claude-code), die über der Eingabe zeigen, woran Claude gerade arbeitet und wie viel vom Kontingent schon verbraucht ist.
+Two mods for [Claude Code](https://claude.com/claude-code) that show, above the prompt, what Claude is working on right now and how much of your usage limit is already used.
 
-| Mod | Was er zeigt |
+| Mod | What it shows |
 | --- | --- |
-| `wochen-nutzung` | Sitzung (5-Stunden-Fenster) und Woche als dünne Balken mit Prozent und ihrer Reset-Zeit. Blau, ab 75 % orange, ab 90 % rot. Er misst außerdem, wie viel von der Woche lokal in Claude Code und wie viel woanders (Web, Handy) verbraucht wurde. Details über `/nutzung`. |
-| `fortschritt` | Den aktuellen Schritt der Aufgabenliste, einen gepunkteten Fortschrittsbalken („2/5“, Prozent), die Zahl der laufenden Agents und klein rechts, wie viel von der Woche lokal und im Web verbraucht wurde. |
+| `wochen-nutzung` | The session (5-hour window) and the week as thin bars, each with its percentage and reset time. Blue, orange from 75 %, red from 90 %. It also measures how much of the week was used locally in Claude Code and how much elsewhere (web, phone). Details via `/nutzung`. |
+| `fortschritt` | The current step of the task list, a dotted progress bar ("2/5", percentage), the number of running agents and, small on the right, how much of the week was used locally and on the web. |
 
-Beide laufen einzeln, zusammen ergeben sie die komplette Leiste: oben die Nutzung, darunter der Fortschritt. Jede Leiste lässt sich mit ✕ ausblenden.
+Each mod runs on its own; together they make up the full bar: usage on top, progress below. Each bar can be hidden with ✕.
 
-**Hinweis:** `fortschritt` liest die Aufgabenliste, die Claude im Code-Tab der Claude-Desktop-App führt. Die Leiste steht immer da, auch ohne Aufgabenliste: dann mit leerem Balken und den laufenden Agents. Die Aufteilung lokal / Web kommt aus `wochen-nutzung`; ohne diesen Mod bleibt die Stelle leer. Die Texte sind auf Deutsch.
+**Note:** `fortschritt` reads the task list Claude keeps in the Code tab of the Claude desktop app. The bar is always shown, even without a task list: then with an empty bar and the running agents. The local / web split comes from `wochen-nutzung`; without that mod the spot stays empty. The mods' on-screen text is in German.
 
-## Installieren
+## Install
 
-Im Terminal an der Eingabe von Claude Code:
+At the Claude Code prompt in a terminal:
 
 ```
 /plugin install wochen-nutzung --marketplace Merv9310/claude-progressbar
@@ -23,7 +23,7 @@ Im Terminal an der Eingabe von Claude Code:
 /plugin install fortschritt --marketplace Merv9310/claude-progressbar
 ```
 
-Aus einer Shell:
+From a shell:
 
 ```bash
 claude plugin install wochen-nutzung --marketplace Merv9310/claude-progressbar
@@ -33,13 +33,13 @@ claude plugin install wochen-nutzung --marketplace Merv9310/claude-progressbar
 claude plugin install fortschritt --marketplace Merv9310/claude-progressbar
 ```
 
-In der Desktop-App, wo `/plugin` nicht läuft: auf **+** neben der Eingabe klicken, dann **Plugins**, **Add marketplace** mit `Merv9310/claude-progressbar`, dann **Add plugin**.
+In the desktop app, where `/plugin` doesn't run: click **+** next to the prompt, then **Plugins**, **Add marketplace** with `Merv9310/claude-progressbar`, then **Add plugin**.
 
-Beim ersten Mal fragt Claude Code `Add marketplace?`, das beantwortest du mit `y`. Danach wählst du den Bereich, für alle Sitzungen ist das `user`.
+The first time, Claude Code asks `Add marketplace?`; answer `y`. Then pick the scope; for all sessions that is `user`.
 
-## Entwickeln
+## Development
 
-Jeder Mod liegt unter `plugins/<name>/` und hat eigene Tests:
+Each mod lives under `plugins/<name>/` and has its own tests:
 
 ```bash
 claude plugin validate plugins/fortschritt
@@ -49,10 +49,10 @@ claude plugin validate plugins/fortschritt
 claude plugin test plugins/fortschritt
 ```
 
-## Danke
+## Credits
 
-Die Optik des Fortschrittsbalkens in `fortschritt`, also die gepunktete Füllung und die Zeile als ein SVG, ist an [savvy-progress](https://github.com/johnnyvizz/claude-kit/tree/main/plugins/savvy-progress) von johnnyvizz (MIT) angelehnt.
+The look of the progress bar in `fortschritt`, the dotted fill and the row drawn as one SVG, is inspired by [savvy-progress](https://github.com/johnnyvizz/claude-kit/tree/main/plugins/savvy-progress) by johnnyvizz (MIT).
 
-## Lizenz
+## License
 
-MIT, siehe [LICENSE](LICENSE).
+MIT, see [LICENSE](LICENSE).

@@ -1,7 +1,7 @@
 {
   "name": "wochen-nutzung",
   "version": "0.3.0",
-  "description": "Balken über der Eingabe: Sitzung und Woche in % mit ihrer Reset-Zeit; die Aufteilung der Woche in lokal und Web führt er für die Fortschritts-Leiste und die Fußzeile, Details über /nutzung.",
+  "description": "Bars above the prompt: session and week in % with their reset times; it tracks the local / web split of the week for the progress bar and the footer, details via /nutzung.",
   "types": "./types/index.d.ts",
   "author": {
     "name": "Merv9310"
