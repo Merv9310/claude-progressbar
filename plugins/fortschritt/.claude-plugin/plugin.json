@@ -1,7 +1,7 @@
 {
   "name": "fortschritt",
-  "version": "0.4.0",
-  "description": "A fixed bar above the prompt, even without a task list: task-list progress, running agents and, small on the side, how much of the weekly limit was used locally and on the web (values from the wochen-nutzung mod).",
+  "version": "0.5.0",
+  "description": "A fixed bar above the prompt, even without a task list: task-list progress, running agents and, at the far right, a ring showing how full this session's context is (value from the wochen-nutzung mod).",
   "types": "./types/index.d.ts",
   "author": {
     "name": "Merv9310"

@@ -2,7 +2,7 @@ import { describe, expect, test } from 'claude-code/testing'
 import type { RenderElement } from 'claude-code'
 
 import { applyPlan, doneOf, finishPlan, titleOf } from '../hooks/plan'
-import { rowSvg, splitLines } from '../hooks/register'
+import { contextLabel, rowSvg } from '../hooks/register'
 
 const items = [
   { content: 'Dateien lesen', status: 'completed' },
@@ -39,22 +39,24 @@ describe('plan', () => {
   })
 })
 
-test('the drawing holds title, count, agents and the local / web split', () => {
-  const svg = rowSvg(
-    { title: 'Mod schreiben', done: 1, total: 3, isFinished: false, running: 2, split: ['Lokal 5%', 'Web 2,3%'] },
-    800,
-  )
+test('the drawing holds title, count, agents and the context ring at the far right', () => {
+  const svg = rowSvg({ title: 'Mod schreiben', done: 1, total: 3, isFinished: false, running: 2, context: 34 }, 800)
   expect(svg.includes('Mod schreiben')).toBe(true)
   expect(svg.includes('1/3')).toBe(true)
   expect(svg.includes('2 Agents')).toBe(true)
-  expect(svg.includes('Lokal 5%')).toBe(true)
-  expect(svg.includes('Web 2,3%')).toBe(true)
-  expect(svg.includes('Reset')).toBe(false)
+  expect(svg.includes('34%')).toBe(true)
+  expect(svg.includes('stroke-dasharray')).toBe(true)
+  // Lokal / Web steht jetzt im Band von „wochen-nutzung“, nicht mehr hier.
+  expect(svg.includes('Lokal')).toBe(false)
 })
 
-test('the split lines appear only once wochen-nutzung has a split', () => {
-  expect(splitLines(null)).toEqual([])
-  expect(splitLines({ local: 12.4, other: 2.25 })).toEqual(['Lokal 12%', 'Web 2,3%'])
+test('the ring stays empty without a measured context and turns red from 90 %', () => {
+  expect(contextLabel(undefined)).toBe('0%')
+  expect(contextLabel(4.25)).toBe('4,3%')
+  const empty = rowSvg({ title: 'x', done: 0, total: 0, isFinished: false, running: 0 }, 600)
+  expect(empty.includes('stroke-dasharray')).toBe(false)
+  const full = rowSvg({ title: 'x', done: 0, total: 0, isFinished: false, running: 0, context: 95 }, 600)
+  expect(full.includes('#e5484d')).toBe(true)
 })
 
 test('the band appears with a task list and hides on ✕', async ($, on) => {
@@ -83,7 +85,8 @@ test('the band appears with a task list and hides on ✕', async ($, on) => {
   const ui = await $.ui.mount({ plugin: 'fortschritt', surface: 'terminal', component: 'AbovePrompt', props: band })
   expect(await ui.find({ type: 'Text', text: 'Mod schreiben' })).toBeDefined()
   expect(await ui.find({ type: 'Text', text: '1/3' })).toBeDefined()
-  // Ohne den Mod „wochen-nutzung“ gibt es keine Aufteilung: die Stelle bleibt leer.
+  // Der Kontext steht immer rechts außen, Lokal / Web nicht mehr in dieser Leiste.
+  expect(await ui.find({ type: 'Text', text: /Kontext/ })).toBeDefined()
   expect(await ui.find({ type: 'Text', text: /Lokal/ })).toBeUndefined()
   await ui.unmount()
 

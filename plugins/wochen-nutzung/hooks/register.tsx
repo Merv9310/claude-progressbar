@@ -65,8 +65,8 @@ type BandPart = { key: string; text: string; color?: 'error' | 'warning'; name: 
 /** The band's parts, left to right: the session (5-hour) window, then the week. */
 function bandParts(s: Snapshot) {
   const parts: BandPart[] = []
-  // Jede Grenze mit ihrer Reset-Zeit; die Aufteilung lokal / Web zeigt die
-  // Fortschritts-Leiste (Mod „fortschritt“) rechts außen.
+  // Jede Grenze mit ihrer Reset-Zeit; die Aufteilung lokal / Web steht rechts
+  // außen im selben Band (splitLines), darunter der Kontext-Ring von „fortschritt“.
   if (s.fiveHour) {
     const reset = resetClock(s.fiveHour.resetsAt)
     parts.push({
@@ -144,8 +144,21 @@ function limitSvg(p: BandPart, x: number, y: number, w: number, detailX: number)
 </g>`
 }
 
-/** Die ganze Zeile als SVG, `W` Pixel breit; gibt die Höhe mit zurück. */
-export function bandSvg(parts: BandPart[], W: number): { source: string; height: number } {
+/** „Lokal 5%“, „Web 2,3%“: die Aufteilung der Woche, rechts außen im Band; leer ohne Messung. */
+export const splitLines = (s: Snapshot): string[] =>
+  s.week && s.ledger ? [`Lokal ${pct(s.ledger.local)}`, `Web ${pct(s.ledger.other)}`] : []
+
+const SPLIT_SIZE = 10.5
+
+/**
+ * Die ganze Zeile als SVG, `W` Pixel breit; gibt die Höhe mit zurück.
+ * `split` steht zweizeilig rechts außen, unten bündig, direkt über dem
+ * Kontext-Ring der Fortschritts-Leiste; die Balken rücken dafür nach links.
+ */
+export function bandSvg(parts: BandPart[], W: number, split: string[] = []): { source: string; height: number } {
+  const splitW = split.length ? Math.ceil(Math.max(...split.map(l => textWidth(l, SPLIT_SIZE)))) + 28 : 0
+  const total = W
+  W = W - splitW
   const half = (W - GAP * (parts.length - 1)) / parts.length
   const isSideBySide = parts.every(p => needWidth(p) <= half)
   const column = Math.round(Math.max(...parts.map(p => textWidth(p.name, 12.5))) + 18)
@@ -155,12 +168,19 @@ export function bandSvg(parts: BandPart[], W: number): { source: string; height:
       : limitSvg(p, 0, i * (ROW_H + 8), W, column),
   )
   const height = isSideBySide ? ROW_H : parts.length * ROW_H + (parts.length - 1) * 8
-  const source = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${height}" viewBox="0 0 ${W} ${height}">
+  const splitSvg = split
+    .map(
+      (line, i) =>
+        `<text class="m" x="${total - 2}" y="${height - 3 - (split.length - 1 - i) * 13}" text-anchor="end" font-family="${FONT}" font-size="${SPLIT_SIZE}" font-variant-numeric="tabular-nums">${xml(line)}</text>`,
+    )
+    .join('')
+  const source = `<svg xmlns="http://www.w3.org/2000/svg" width="${total}" height="${height}" viewBox="0 0 ${total} ${height}">
 <style>
 .t{fill:#1f1f1f}.m{fill:#7a7a7a}.k{fill:#e4e4e2}
 @media (prefers-color-scheme: dark){.t{fill:#ececec}.m{fill:#9a9a9a}.k{fill:#3a3a3a}}
 </style>
 ${blocks.join('\n')}
+${splitSvg}
 </svg>`
   return { source, height }
 }
@@ -333,11 +353,12 @@ export const register: Register = on => {
     if (e.surface !== 'terminal' && 'Svg' in ui) {
       const { Svg } = ui
       const width = Math.max(300, Math.min(1600, (e.props.bodyColumns || 100) * 8 - 48))
-      const { source, height } = bandSvg(parts, width)
+      const split = s ? splitLines(s) : []
+      const { source, height } = bandSvg(parts, width, split)
       return (
         <Box flexDirection="column">
           <Box flexDirection="row" alignItems="center" gap={1}>
-            <Svg source={source} alt={parts.map(p => p.text).join(', ')} width={width} height={height} />
+            <Svg source={source} alt={[...parts.map(p => p.text), ...split].join(', ')} width={width} height={height} />
             {hide}
           </Box>
           {below}
@@ -353,6 +374,7 @@ export const register: Register = on => {
               {p.text}
             </Text>
           ))}
+          {s && splitLines(s).length > 0 && <Text dimColor>{splitLines(s).join(' · ')}</Text>}
           {hide}
         </Box>
         {below}

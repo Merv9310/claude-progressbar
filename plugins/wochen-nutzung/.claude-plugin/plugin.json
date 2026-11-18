@@ -1,7 +1,7 @@
 {
   "name": "wochen-nutzung",
-  "version": "0.3.0",
-  "description": "Bars above the prompt: session and week in % with their reset times; it tracks the local / web split of the week for the progress bar and the footer, details via /nutzung.",
+  "version": "0.4.0",
+  "description": "Bars above the prompt: session and week in % with their reset times; the local / web split of the week sits at its right end, details via /nutzung.",
   "types": "./types/index.d.ts",
   "author": {
     "name": "Merv9310"

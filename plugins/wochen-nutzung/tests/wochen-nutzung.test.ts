@@ -2,7 +2,7 @@ import { describe, expect, mock, test } from 'claude-code/testing'
 import type { RenderElement, SessionMeasureInput } from 'claude-code'
 
 import { apply } from '../hooks/ledger'
-import { bandSvg } from '../hooks/register'
+import { bandSvg, splitLines } from '../hooks/register'
 import type { Ledger } from '../types'
 
 const RESET = '2026-10-20T07:00:00.000Z'
@@ -133,4 +133,21 @@ test('the bars turn orange from 75 % and red from 90 %, and stack when narrow', 
   const both = [part(11), part(14, 'Woche', 'lokal 12% · Web 2,3%')]
   expect(bandSvg(both, 560).height).toBe(30)
   expect(bandSvg(both, 400).height).toBe(68)
+})
+
+test('local / web sit at the right end of the band, the bars move left', () => {
+  const ledger = { resetsAt: 'x', lastPct: 20, lastAt: 0, before: 0, local: 12.4, other: 2.25, unclear: 0 }
+  const split = splitLines({ week: { pct: 20 }, ledger })
+  expect(split).toEqual(['Lokal 12%', 'Web 2,3%'])
+  expect(splitLines({ ledger })).toEqual([])
+
+  const part = { key: 'week', text: '', name: 'Woche', detail: 'Reset Sa., 03:00', pct: 20 }
+  const without = bandSvg([part], 600).source
+  const withSplit = bandSvg([part], 600, split).source
+  expect(withSplit.includes('Lokal 12%')).toBe(true)
+  expect(withSplit.includes('width="600"')).toBe(true)
+  // Der Balken der Woche wird schmaler, damit die Aufteilung daneben Platz hat.
+  const barW = (svg: string) => Number(/<rect class="k" x="0" y="19" width="(\d+)"/.exec(svg)?.[1])
+  expect(barW(withSplit) < barW(without)).toBe(true)
+  expect(barW(withSplit) + 50 < 600).toBe(true)
 })

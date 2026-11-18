@@ -13,31 +13,34 @@ const PLAN_TOOL = 'mcp__ccd_turn__update_plan'
 const WRAP_TOOL = 'mcp__ccd_turn__wrap_up'
 
 // ---------------------------------------------------------------------------
-// Wie viel vom Wochenkontingent lokal und wie viel im Web verbraucht wurde.
-// Gemessen und geführt vom Mod „wochen-nutzung“, dessen Balken mit den
-// Reset-Zeiten darüber stehen; jeder Mod darf die Werte eines anderen lesen.
-// Ohne ihn bleibt die Stelle leer.
+// Wie voll der Kontext dieser Session ist, als Ring rechts außen. Der Wert kommt
+// vom Mod „wochen-nutzung“ (beim Zeichnen gelesen, damit die Leiste mitzieht);
+// ohne ihn fragt die Leiste die Session selbst. Die Aufteilung lokal / Web
+// steht seit 0.5.0 in der Zeile darüber, neben den Kontingent-Balken.
 
-export type Split = { local: number; other: number }
+type UsageSnapshot = { context?: { percent?: unknown } } | null
 
-type UsageSnapshot = { week?: unknown; ledger?: { local?: unknown; other?: unknown } } | null
-
-async function splitOf($: EngineInterface): Promise<Split | null> {
+async function contextOf($: EngineInterface): Promise<number | undefined> {
   try {
     const read = (await $.state.get({ plugin: 'wochen-nutzung', key: 'snapshot' } as never)) as unknown as {
       value?: UsageSnapshot
     }
-    const l = read.value?.week ? read.value.ledger : undefined
-    return typeof l?.local === 'number' && typeof l.other === 'number' ? { local: l.local, other: l.other } : null
+    const p = read.value?.context?.percent
+    if (typeof p === 'number') return p
   } catch {
-    return null
+    // weiter mit der eigenen Messung
+  }
+  try {
+    return (await $.session.usage()).context.percent
+  } catch {
+    return undefined
   }
 }
 
 const pct = (n: number) => (n >= 10 || Number.isInteger(n) ? `${Math.round(n)}%` : `${n.toFixed(1).replace('.', ',')}%`)
 
-/** Die beiden Zeilen rechts außen; leer, solange keine Aufteilung da ist. */
-export const splitLines = (s: Split | null): string[] => (s ? [`Lokal ${pct(s.local)}`, `Web ${pct(s.other)}`] : [])
+/** Die Beschriftung neben dem Ring; „0%“, solange der Kontext noch leer ist. */
+export const contextLabel = (p: number | undefined): string => pct(Math.max(0, Math.min(100, p ?? 0)))
 
 // ---------------------------------------------------------------------------
 // Die Zeile als ein SVG: Titel, gepunkteter Balken, Prozent, Agents, Kontingent.
@@ -80,11 +83,16 @@ export type View = {
   total: number
   isFinished: boolean
   running: number
-  /** Lokal und Web, zweizeilig rechts außen. */
-  split: string[]
+  /** Kontext dieser Session in %, als Ring rechts außen; undefined = noch leer. */
+  context?: number
 }
 
-const SPLIT_W = 80
+const RING_W = 58
+const RING_R = 8
+const BLUE = '#4f8ff7'
+const ORANGE = '#f0932b'
+const RED = '#e5484d'
+const ringColor = (p: number) => (p >= 90 ? RED : p >= 75 ? ORANGE : BLUE)
 const AGENT_W = 84
 const PCT_W = 38
 
@@ -93,7 +101,7 @@ export function rowSvg(v: View, W: number): string {
   const ratio = v.total ? v.done / v.total : 0
   const title = fitText(v.title, 13, Math.max(60, W * 0.32))
   const BAR_X = Math.round(16 + textWidth(title, 13) + 12)
-  const BAR_W = Math.max(60, W - BAR_X - PCT_W - AGENT_W - SPLIT_W - 16)
+  const BAR_W = Math.max(60, W - BAR_X - PCT_W - AGENT_W - RING_W - 16)
   const y0 = (H - BAR_H) / 2
   const fillW = Math.round(BAR_W * ratio)
 
@@ -134,20 +142,22 @@ ${isBusy ? '<rect x="2.5" y="5.5" width="2" height="2" fill="#fff"/><rect x="6.5
 </g>`
   const agentText = isBusy ? `${v.running} ${v.running === 1 ? 'Agent' : 'Agents'}` : 'keine Agents'
 
-  // Lokal und Web: klein, zweizeilig, rechts außen.
-  const ys = v.split.length === 1 ? [H / 2 + 3.5] : [10, 21]
-  const splitSvg = v.split
-    .map(
-      (line, i) =>
-        `<text class="m" x="${W - 2}" y="${ys[i]}" text-anchor="end" font-family="${FONT}" font-size="9.5" font-variant-numeric="tabular-nums">${xml(line)}</text>`,
-    )
-    .join('')
+  // Kontext: ein Ring ganz rechts außen, im Uhrzeigersinn ab 12 Uhr gefüllt,
+  // die Prozentzahl klein davor. Blau, ab 75 % orange, ab 90 % rot.
+  const ctx = Math.max(0, Math.min(100, v.context ?? 0))
+  const cx = W - RING_R - 2.5
+  const cy = H / 2
+  const circ = 2 * Math.PI * RING_R
+  const arc = (circ * ctx) / 100
+  const ringSvg = `<circle class="rk" cx="${cx}" cy="${cy}" r="${RING_R}" fill="none" stroke-width="3"/>
+${arc > 0 ? `<circle cx="${cx}" cy="${cy}" r="${RING_R}" fill="none" stroke="${ringColor(ctx)}" stroke-width="3" stroke-linecap="round" stroke-dasharray="${arc.toFixed(2)} ${circ.toFixed(2)}" transform="rotate(-90 ${cx} ${cy})"/>` : ''}
+<text class="m" x="${cx - RING_R - 6}" y="${H / 2 + 4}" text-anchor="end" font-family="${FONT}" font-size="11" font-variant-numeric="tabular-nums">${contextLabel(v.context)}</text>`
 
   const speed = v.isFinished ? [3.2, 3.8, 4.4, 3.5] : [2.2, 2.8, 1.9, 3.3]
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
 <style>
-.t{fill:#1f1f1f}.m{fill:#8a8a8a}.k{fill:#e4e4e2}.tk{fill:#b4b4b0}
-@media (prefers-color-scheme: dark){.t{fill:#ececec}.m{fill:#9a9a9a}.k{fill:#2c2c2c}.tk{fill:#5a5a5a}}
+.t{fill:#1f1f1f}.m{fill:#8a8a8a}.k{fill:#e4e4e2}.tk{fill:#b4b4b0}.rk{stroke:#e4e4e2}
+@media (prefers-color-scheme: dark){.t{fill:#ececec}.m{fill:#9a9a9a}.k{fill:#2c2c2c}.tk{fill:#5a5a5a}.rk{stroke:#3a3a3a}}
 .t0,.t1,.t2,.t3{animation:tw ${speed[0]}s ease-in-out infinite}
 .t1{animation-duration:${speed[1]}s;animation-delay:-.7s}.t2{animation-duration:${speed[2]}s;animation-delay:-1.3s}.t3{animation-duration:${speed[3]}s;animation-delay:-.4s}
 @keyframes tw{0%,100%{opacity:1}50%{opacity:${v.isFinished ? 0.8 : 0.3}}}
@@ -166,7 +176,7 @@ ${pillSvg}
 <text class="m" x="${BAR_X + BAR_W + PCT_W - 4}" y="${H / 2 + 4.5}" text-anchor="end" font-family="${FONT}" font-size="12.5" font-variant-numeric="tabular-nums">${percent}</text>
 ${bot}
 <text class="${isBusy ? 't' : 'm'}" x="${AX + 16}" y="${H / 2 + 4}" font-family="${FONT}" font-size="11.5">${agentText}</text>
-${splitSvg}
+${ringSvg}
 </svg>`
 }
 
@@ -175,14 +185,14 @@ const barText = (v: View, width: number): string => {
   return '█'.repeat(filled) + '░'.repeat(Math.max(0, width - filled))
 }
 
-// Ohne Aufgabenliste steht die Leiste trotzdem da: leerer Balken, Agents, lokal / Web.
-const viewOf = (p: Plan | null, running: number, s: Split | null): View => ({
+// Ohne Aufgabenliste steht die Leiste trotzdem da: leerer Balken, Agents, Kontext-Ring.
+const viewOf = (p: Plan | null, running: number, context: number | undefined): View => ({
   title: p ? titleOf(p) : running > 0 ? 'Agents arbeiten' : 'Keine Aufgabenliste',
   done: p ? doneOf(p) : 0,
   total: p ? p.steps.length : 0,
   isFinished: p?.isFinished ?? false,
   running,
-  split: splitLines(s),
+  context,
 })
 
 export const register: Register = on => {
@@ -243,8 +253,8 @@ export const register: Register = on => {
     const drawn = await Promise.resolve(next(e)).catch(() => null)
     const below = drawn && typeof drawn === 'object' && (drawn as { type?: string }).type !== 'engine' ? drawn : null
 
-    // Beim Zeichnen gelesen: ändert „wochen-nutzung“ die Aufteilung, zeichnet die Leiste neu.
-    const v = viewOf(p, list.length, await splitOf($))
+    // Beim Zeichnen gelesen: misst „wochen-nutzung“ den Kontext neu, zeichnet die Leiste neu.
+    const v = viewOf(p, list.length, await contextOf($))
     const ui = $.ui.resolve(e)
     const { Box, Text, Button } = ui
     const dismiss = <Button key="fortschritt-hide" label="✕" plain role="dismiss" onPress={() => update($, isHidden, () => true)} />
@@ -253,7 +263,7 @@ export const register: Register = on => {
     if (e.surface !== 'terminal' && 'Svg' in ui) {
       const { Svg } = ui
       const width = Math.max(320, Math.min(1600, (e.props.bodyColumns || 100) * 8 - 48))
-      const alt = `${v.title}: ${v.done} von ${v.total}, ${v.running} Agents aktiv`
+      const alt = `${v.title}: ${v.done} von ${v.total}, ${v.running} Agents aktiv, Kontext ${contextLabel(v.context)}`
       return (
         <Box flexDirection="column">
           <Box flexDirection="row" alignItems="center" gap={1}>
@@ -273,7 +283,7 @@ export const register: Register = on => {
           {v.total > 0 && <Text color={v.isFinished ? DONE : ACCENT}>{barText(v, 20)}</Text>}
           {v.total > 0 && <Text bold>{`${v.done}/${v.total}`}</Text>}
           <Text dimColor={v.running === 0}>{v.running > 0 ? `${v.running} Agents` : 'keine Agents'}</Text>
-          {v.split.length > 0 && <Text dimColor>{v.split.join(' · ')}</Text>}
+          <Text dimColor>{`◔ Kontext ${contextLabel(v.context)}`}</Text>
           {dismiss}
         </Box>
         {below}

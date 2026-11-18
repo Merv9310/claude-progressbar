@@ -4,12 +4,12 @@ Two mods for [Claude Code](https://claude.com/claude-code) that show, above the 
 
 | Mod | What it shows |
 | --- | --- |
-| `wochen-nutzung` | The session (5-hour window) and the week as thin bars, each with its percentage and reset time. Blue, orange from 75 %, red from 90 %. It also measures how much of the week was used locally in Claude Code and how much elsewhere (web, phone). Details via `/nutzung`. |
-| `fortschritt` | The current step of the task list, a dotted progress bar ("2/5", percentage), the number of running agents and, small on the right, how much of the week was used locally and on the web. |
+| `wochen-nutzung` | The session (5-hour window) and the week as thin bars, each with its percentage and reset time. Blue, orange from 75 %, red from 90 %. It also measures how much of the week was used locally in Claude Code and how much elsewhere (web, phone), shown small at the right end of the bars. Details via `/nutzung`. |
+| `fortschritt` | The current step of the task list, a dotted progress bar ("2/5", percentage), the number of running agents and, at the far right, a ring showing how full this session's context is (blue, orange from 75 %, red from 90 %). |
 
 Each mod runs on its own; together they make up the full bar: usage on top, progress below. Each bar can be hidden with ✕.
 
-**Note:** `fortschritt` reads the task list Claude keeps in the Code tab of the Claude desktop app. The bar is always shown, even without a task list: then with an empty bar and the running agents. The local / web split comes from `wochen-nutzung`; without that mod the spot stays empty. The mods' on-screen text is in German.
+**Note:** `fortschritt` reads the task list Claude keeps in the Code tab of the Claude desktop app. The bar is always shown, even without a task list: then with an empty bar and the running agents. The context ring reads its value from `wochen-nutzung` and falls back to the session's own figures without that mod. The mods' on-screen text is in German.
 
 ## Install
 
